@@ -1,0 +1,20 @@
+{
+  "name": "martini",
+  "version": "0.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "tap test"
+  },
+  "author": "Jacob Groundwater <groundwater@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "lib-http-api": "0.0.2",
+    "lib-polygen": "0.0.0",
+    "lib-schema": "^0.3.0",
+    "lib-stream-liquify": "0.0.1",
+    "lib-stream-solidify": "^0.1.0"
+  },
+  "devDependencies": {
+    "tap": "^0.4.11"
+  }
+}
