@@ -110,9 +110,10 @@ RPC.prototype.getClient = function (port, host) {
         }
 
         var req = http.request(url, function (res) {
-          if (res.statusCode === 200)
-            resolve(out.applyRight(res))
-          else
+          if (res.statusCode === 200) {
+            resolve(out.fromStream(res))
+          }
+          else {
             collector.collect(res)
             .then(function (data) {
               // an error has ocurred
@@ -125,9 +126,10 @@ RPC.prototype.getClient = function (port, host) {
                 reject(data)
               }
             })
+          }
         })
 
-        return int.applyLeft(data).stream.pipe(req)
+        return int.toStream(data).stream.pipe(req)
       })
     }
 
@@ -197,7 +199,7 @@ RPC.prototype.getRouter = function (app) {
       handler = _handler
 
       // format the incoming request
-      return handler.input.applyRight(req)
+      return handler.input.fromStream(req)
     })
     .then(function (_data) {
       data = _data
@@ -208,7 +210,7 @@ RPC.prototype.getRouter = function (app) {
     .then(function (_reply) {
 
       // format the _reply into a response object
-      return handler.output.applyLeft(_reply)
+      return handler.output.toStream(_reply)
     })
     .then(function(_res){
 

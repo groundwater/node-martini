@@ -46,5 +46,6 @@ server.listen(0, function () {
       server.close()
       t.end()
     })
+    .catch(console.error)
   })
 })
