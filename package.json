@@ -8,6 +8,7 @@
   "author": "Jacob Groundwater <groundwater@gmail.com>",
   "license": "ISC",
   "dependencies": {
+    "bluebird": "^2.1.3",
     "lib-http-api": "0.0.2",
     "lib-polygen": "0.0.0",
     "lib-schema": "^0.3.0",

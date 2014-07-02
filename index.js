@@ -1,5 +1,7 @@
 'use strict'
 
+if (!global.Promise) global.Promise = require('bluebird')
+
 var http           = require('http')
 var assert         = require('assert')
 
@@ -100,18 +102,17 @@ RPC.prototype.getClient = function (port, host) {
     var input  = pg.generate(routes[key].input)
     var output = pg.generate(routes[key].output)
 
-    // client
-    function go(key, int, out, data, params, opts) {
-      return new Promise(function (resolve, reject) {
-        var url = api.request(key, params, opts)
+    client[key] = function (data, params, opts) {
+      var url = api.request(key, params, opts)
 
+      return new Promise(function (resolve, reject) {
         url.headers = {
           'Transfer-Encoding': 'chunked'
         }
 
         var req = http.request(url, function (res) {
           if (res.statusCode === 200) {
-            resolve(out.fromStream(res))
+            resolve(output.fromStream(res))
           }
           else {
             collector.collect(res)
@@ -129,11 +130,13 @@ RPC.prototype.getClient = function (port, host) {
           }
         })
 
-        return int.toStream(data).stream.pipe(req)
+        req.on('error', reject)
+
+        input.toStream(data).stream.pipe(req)
       })
     }
 
-    client[key] = go.bind(null, key, input, output)
+    client[key].name = key
   })
 
   this.api = api
@@ -173,7 +176,9 @@ RPC.prototype.getRouter = function (app) {
     }
 
     // add route
-    var func = app[key].bind(app)
+    var func = function(body, params, opts){
+      return app[key](body, params, opts)
+    }
     appHandlers[key] = {
       input  : input,
       output : output,
@@ -182,104 +187,109 @@ RPC.prototype.getRouter = function (app) {
 
   })
 
-  return function router(req, res) {
-    var handler
-      , info
-      , data
+  return router.bind(this)
+}
 
-    // extract the destination route from url
-    self.apiGet(req.method, req.url)
-    .then(function (_info) {
-      info = _info
+function router(req, res) {
+  var router = this
+  var handler
+    , info
+    , data
 
-      // find the specified router
-      return self.get(info.handle)
-    })
-    .then(function (_handler) {
-      handler = _handler
+  // extract the destination route from url
+  router.apiGet(req.method, req.url)
+  .then(function (_info) {
+    info = _info
 
-      // format the incoming request
-      return handler.input.fromStream(req)
-    })
-    .then(function (_data) {
-      data = _data
+    // find the specified router
+    return router.get(info.handle)
+  })
+  .then(function (_handler) {
+    handler = _handler
 
-      // apply the request to the route
-      return handler.handle(data, info.params, info.query)
-    })
-    .then(function (_reply) {
+    // format the incoming request
+    return handler.input.fromStream(req)
+  })
+  .then(function (_data) {
+    data = _data
 
-      // format the _reply into a response object
-      return handler.output.toStream(_reply)
-    })
-    .then(function(_res){
+    // apply the request to the route
+    return handler.handle(data, info.params, info.query)
+  })
+  .then(function (_reply) {
 
-      // everything worked
+    // format the _reply into a response object
+    return handler.output.toStream(_reply)
+  })
+  .then(function(_res){
+    res.statusCode = 200
+    res.setHeader('Content-Type', _res.contentType)
 
-      res.statusCode = 200
-      res.setHeader('Content-Type', _res.contentType)
+    _res.stream.pipe(res)
+  })
+  .catch(function(err){
+    // something went wrong
 
-      _res.stream.pipe(res)
-    })
-    .catch(function(err){
-      // something went wrong
+    var status, message
 
-      var status, message
+    switch (err.kind) {
+    case 'NotFound':
+    case 'NoRoute':
+      status  = 404
+      message = 'Not Found'
+      break
 
-      switch (err.kind) {
-      case 'NotFound':
-      case 'NoRoute':
-        status  = 404
-        message = 'Not Found'
-        break
+    case 'NotImplemented':
+    case 'NoRouter':
+      status  = 501
+      message = 'Not Implemented'
+      break
 
-      case 'NotImplemented':
-      case 'NoRouter':
-        status  = 501
-        message = 'Not Implemented'
-        break
+    case 'StreamTooLarge':
+      status  = 413
+      message = 'Request Too Large'
+      break
 
-      case 'StreamTooLarge':
-        status  = 413
-        message = 'Request Too Large'
-        break
+    case 'UnsupportedType':
+      status  = 415
+      message = 'Unsupported Media Type'
+      break
 
-      case 'NotJSON':
-      case 'RequireNone':
-        status  = 400
-        message = 'Bad Request'
-        break
+    case 'NotJSON':
+    case 'RequireNone':
+      status  = 400
+      message = 'Bad Request'
+      break
 
-      case 'MarshalException':
-        status  = 400
-        message = err.message
-        break
+    case 'MarshalException':
+      status  = 400
+      message = err.message
+      break
 
-      default:
-        status  = 500
-        message = 'Unknown Error'
+    default:
+      status  = 500
+      message = 'Unknown Error'
 
-        if (err && err.stack)
-             console.error('[FAIL]', err.stack)
-        else console.error('[FAIL]', err)
-      }
+      if (err && err.stack)
+           console.error('[FAIL]', err.stack)
+      else console.error('[FAIL]', err)
+    }
 
-      res.statusCode = status
-      res.end(JSON.stringify({
-        type    : 'error',
-        code    : status,
-        message : message,
-      }) + '\n')
-    })
-    .catch(function(e){
+    res.statusCode = status
+    res.end(JSON.stringify({
+      type    : 'error',
+      code    : status,
+      message : message,
+    }) + '\n')
+  })
+  .catch(function(e){
 
-      // something went very wrong
-      console.log('/// ABORT \\\\\\')
-      console.log(e)
+    // something went very wrong
+    console.log('/// ABORT \\\\\\')
+    console.log(e)
 
-      process.abort()
-    })
-  }
+    process.abort()
+  })
 }
 
 RPC.KindError = KindError
