@@ -16,16 +16,9 @@ var None           = require('./lib/none.js')
 var StreamToSchema = require('./lib/schema.js')
 var StreamIdentity = require('./lib/stream.js')
 var StreamToObject = require('./lib/object.js')
+var KindError      = require('./lib/error.js')
 
 var collector = new Collector()
-
-function KindError(kind, message) {
-  var err = new Error(message)
-
-  err.kind = kind
-
-  return err
-}
 
 function RPC(protocol) {
   this.protocol = protocol
@@ -57,21 +50,21 @@ RPC.New = function (protocol) {
   var rpc = new RPC
 
   var s = Schema(protocol.types)
-  var pg = new PolyGen()
+  var poly = new PolyGen()
 
-  pg.addSymbol(':stream', function () {
+  poly.addSymbol(':stream', function () {
     return new StreamIdentity
   })
-  pg.addSymbol(':json', function () {
+  poly.addSymbol(':json', function () {
     return new StreamToObject
   })
-  pg.addSymbol(':none', function () {
+  poly.addSymbol(':none', function () {
     return new None
   })
-  pg.addSymbol(undefined, function () {
+  poly.addSymbol(undefined, function () {
     return new None
   })
-  pg.setDefault(function (scheme) {
+  poly.setDefault(function (scheme) {
     var marsh = s[scheme]
 
     assert(marsh, 'protocol type <' + scheme + '> not defined')
@@ -80,7 +73,7 @@ RPC.New = function (protocol) {
   });
 
   rpc.protocol = protocol
-  rpc._parser  = pg
+  rpc._parser  = poly
 
   return rpc
 }
@@ -92,15 +85,15 @@ RPC.prototype.getClient = function (port, host) {
   var api = API.New(port, host)
 
   var s = Schema(this.protocol.types)
-  var pg = this._parser
+  var poly = this._parser
 
   Object.keys(routes).forEach(function (key) {
 
     // common
     api.add(key, routes[key].proto)
 
-    var input  = pg.generate(routes[key].input)
-    var output = pg.generate(routes[key].output)
+    var input  = poly.generate(routes[key].input)
+    var output = poly.generate(routes[key].output)
 
     client[key] = function (data, params, opts) {
       var url = api.request(key, params, opts)
@@ -145,11 +138,11 @@ RPC.prototype.getClient = function (port, host) {
 }
 
 RPC.prototype.getRouter = function (app) {
-  var self = this
+  var self   = this
   var routes = this.protocol.routes
-  var api = API.New()
+  var api    = API.New()
 
-  var pg = this._parser
+  var poly = this._parser
   var appHandlers = this.appHandlers = {}
 
   Object.keys(routes).forEach(function (key) {
@@ -157,8 +150,8 @@ RPC.prototype.getRouter = function (app) {
     // common
     api.add(key, routes[key].proto)
 
-    var input  = pg.generate(routes[key].input)
-    var output = pg.generate(routes[key].output)
+    var input  = poly.generate(routes[key].input)
+    var output = poly.generate(routes[key].output)
 
     // server
 
