@@ -20,6 +20,61 @@ var KindError      = require('./lib/error.js')
 
 var collector = new Collector()
 
+function JSONStream(schema) {
+  this.schema = schema
+}
+
+var PassThrough = require('stream').PassThrough
+var EE = require('events').EventEmitter
+
+JSONStream.prototype.toStream = function(obj) {
+  var stream = new PassThrough
+  var schema = this.schema
+
+  obj.on('data', function(person){
+    // emitting null is the same as ending the stream
+    if (person === null) stream.end()
+    else try {
+      var out = schema.marshal(person)
+      stream.write(JSON.stringify(out) + '\n')
+    } catch (e) {
+      obj.emit('error', e)
+      stream.end()
+    }
+  })
+
+  // call this, or emit null to end
+  obj.on('end', function () {
+    stream.end()
+  })
+
+  return {
+    stream: stream,
+    contentType: 'text/plain'
+  }
+}
+
+JSONStream.prototype.fromStream = function (str) {
+  var ee = new EE
+  var schema = this.schema
+
+  // allow the EE to be bound before calling onData
+  setImmediate(function(){
+    str.on('data', function(data){
+      try {
+        ee.emit('data', schema.marshal(JSON.parse(data)))
+      } catch(e) {
+        ee.emit('error', e)
+      }
+    })
+    str.on('end', function(){
+      ee.emit('end')
+    })
+  })
+
+  return ee
+}
+
 function RPC(protocol) {
   this.protocol = protocol
 }
@@ -67,9 +122,23 @@ RPC.New = function (protocol) {
   poly.setDefault(function (scheme) {
     var marsh = s[scheme]
 
+    if (marsh) return new StreamToSchema(marsh)
+
+    // overload this method for now
+    // allow peopel to specify `stream/BLA` as a type
+    // where `BLA` must be a marshalable type
+    var split = scheme.split('/')
+    if (split.length !== 2) assert(marsh, 'protocol type <' + scheme + '> not defined')
+
+    var left  = split[0]
+    var right = split[1]
+
+    assert.equal(left, 'emitter', 'emitter type expected')
+
+    var marsh = s[right]
     assert(marsh, 'protocol type <' + scheme + '> not defined')
 
-    return new StreamToSchema(marsh)
+    return new JSONStream(marsh)
   });
 
   rpc.protocol = protocol
@@ -129,7 +198,7 @@ RPC.prototype.getClient = function (port, host) {
       })
     }
 
-    client[key].name = key
+    // client[key].name = key
   })
 
   this.api = api
