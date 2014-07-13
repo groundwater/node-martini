@@ -164,7 +164,10 @@ RPC.prototype.getClient = function (port, host) {
     var input  = poly.generate(routes[key].input)
     var output = poly.generate(routes[key].output)
 
-    client[key] = function (data, params, opts) {
+    client[key] = function (_data, _params, opts) {
+      var params = _params ? _params : {}
+      var data   = _data   ? _data   : null
+
       var url = api.request(key, params, opts)
 
       return new Promise(function (resolve, reject) {
