@@ -260,6 +260,7 @@ function router(req, res) {
   var handler
     , info
     , data
+    , response // server response (Promise)
 
   // extract the destination route from url
   router.apiGet(req.method, req.url)
@@ -279,7 +280,10 @@ function router(req, res) {
     data = _data
 
     // apply the request to the route
-    return handler.handle(data, info.params, info.query)
+    response = handler.handle(data, info.params, info.query)
+    assert(response instanceof Promise, 'Server method <' + info.handle + '> must return a Promise')
+
+    return response
   })
   .then(function (_reply) {
 
