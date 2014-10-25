@@ -98,7 +98,7 @@ test("validation error", function (t){
     rpc.set(null, {}).
     catch(function(e){
       t.equals(e.message,
-        'Expected <object> but Received null of type <object> at <var>',
+        'Expected <object> but Received <null> of type <object> at <object>',
         'should throw validation error')
       test.stop()
       t.end()

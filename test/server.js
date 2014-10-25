@@ -75,7 +75,7 @@ test("send object that doesn't match schema", function (t){
     function done(res){
       t.equal(res.statusCode, 400)
       solid(res).json(function(_, data) {
-        var err = {"type":"error","code":400,"message":"Required Property <name> Missing at <var>"}
+        var err = {"type":"error","code":400,"message":"Expected <String> but Received <undefined> of type <undefined> at <object>.name"}
         t.deepEqual(data, err)
 
         test.stop()
@@ -86,7 +86,7 @@ test("send object that doesn't match schema", function (t){
 })
 
 test("send data that fails to parse", function (t){
-  Promise.longStackTraces();
+  if (Promise.longStackTraces) Promise.longStackTraces();
 
   var test = new Test()
   test.start(function (rpc){
@@ -106,7 +106,7 @@ test("send data that fails to parse", function (t){
 })
 
 test("send empty data", function (t){
-  Promise.longStackTraces();
+  if (Promise.longStackTraces) Promise.longStackTraces();
 
   var test = new Test()
   test.start(function (rpc){

@@ -281,9 +281,14 @@ function router(req, res) {
 
     // apply the request to the route
     response = handler.handle(data, info.params, info.query)
-    assert(response instanceof Promise, 'Server method <' + info.handle + '> must return a Promise')
-
-    return response
+    if (response instanceof Promise) {
+      return response
+    }
+    else {
+      return new Promise(function (resolve) {
+        resolve(response)
+      })
+    }
   })
   .then(function (_reply) {
 
