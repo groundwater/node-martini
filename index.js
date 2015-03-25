@@ -252,6 +252,8 @@ RPC.prototype.getRouter = function (app) {
 
   })
 
+  this.api = api
+
   return router.bind(this)
 }
 

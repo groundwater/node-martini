@@ -1,4 +1,4 @@
-var test   = require('tap').test
+var test   = require('tape').test
 var assert = require('assert')
 var http   = require('http')
 var solid  = require('lib-stream-solidify')
@@ -45,10 +45,12 @@ App.prototype.set = function(user){
 
 function Test() {
   this.port   = 0
-  this.rpc    = RPC.New(proto)
   this.app    = new App
+  this.rpc    = RPC.New(proto)
 
-  this.router = this.rpc.getRouter(this.app)
+  var serverRpc = RPC.New(proto)
+
+  this.router = serverRpc.getRouter(this.app)
   this.server = http.createServer(this.router)
 }
 

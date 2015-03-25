@@ -1,4 +1,4 @@
-var test   = require('tap').test
+var test   = require('tape').test
 var EE     = require('events').EventEmitter
 var assert = require('assert')
 var http   = require('http')

@@ -13,7 +13,8 @@
     "lib-polygen": "0.0.0",
     "lib-schema": "^0.3.0",
     "lib-stream-liquify": "0.0.1",
-    "lib-stream-solidify": "^0.1.0"
+    "lib-stream-solidify": "^0.1.0",
+    "tape": "^3.5.0"
   },
   "devDependencies": {
     "tap": "^0.4.11"
