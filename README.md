@@ -8,10 +8,6 @@ Martini can generate both the client, and server from a single protocol.
 
 ## Usage
 
-![promises](http://img.shields.io/badge/promises-ES6/A+-blue.svg)
-![streams](http://img.shields.io/badge/streams-node.js-blue.svg)
-![event emitters](http://img.shields.io/badge/event%20emitters-node.js-blue.svg)
-
 ### Define a protocol
 
 Create a `user` type,
@@ -147,5 +143,3 @@ DONE
   the schema protocol used to validate requests
 - [lib-marshal](https://www.npmjs.org/package/lib-marshal)
   the plumbing for *lib-schema*
-- [asgard](https://www.npmjs.org/package/asgard)
-  the node-os init daemon
