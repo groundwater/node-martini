@@ -102,6 +102,10 @@ RPC.prototype.apiGet = function apiGet(method, url) {
 }
 
 RPC.New = function (protocol) {
+  assert(protocol, 'schema required')
+  assert(protocol.types, 'property {types} missing in protocol')
+  assert(protocol.routes, 'property {routes} missing in protocol')
+
   var rpc = new RPC
 
   var s = Schema(protocol.types)
